@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import validator, { trim } from "validator";
+import validator from "validator";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
@@ -78,6 +78,7 @@ userSchema.methods.toJSON = function () {
   delete userObject.password;
   delete userObject.tokens;
   delete userObject.avatar;
+  delete userObject.__v;
 
   return userObject;
 };
@@ -96,8 +97,7 @@ userSchema.methods.generateAuthToken = async function () {
 // --- Statics ---
 // find user by email and password for login
 userSchema.statics.findByCredentials = async function (email, password) {
-  const User = this;
-  const user = await User.findOne({ email });
+  const user = await this.findOne({ email });
 
   if (!user) {
     throw new Error("Unable to login");
@@ -114,14 +114,12 @@ userSchema.statics.findByCredentials = async function (email, password) {
 
 // --- Middleware ---
 // hash the plain text password before saving
-userSchema.pre("save", async function (next) {
+userSchema.pre("save", async function () {
   const user = this;
 
   if (user.isModified("password")) {
     user.password = await bcrypt.hash(user.password, 8);
   }
-
-  next();
 });
 
 // create and export User model

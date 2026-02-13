@@ -29,7 +29,7 @@ app.get("/", (req, res) => {
 });
 
 // Handle undefined Routes
-app.all("/.*/", (res, req, next) => {
+app.all(/.*/, (res, req, next) => {
   res.status(404).json({
     status: "fail",
     message: `Can't find ${req.originalUrl} on this server!`,
