@@ -56,6 +56,33 @@ export const login = catchAsync(async (req, res) => {
   });
 });
 
+// LOGOUT
+export const logout = catchAsync(async (req, res) => {
+  // Target = delete current token from user tokens array
+  req.user.tokens = req.user.tokens.filter((tokenObj) => {
+    return tokenObj.token !== req.token; // keep all tokens, except the token that user logged in with it.
+  });
+
+  await req.user.save();
+
+  res.status(200).json({
+    status: "success",
+    message: "Logged out successfully",
+  });
+});
+
+// LOGOUT ALL (ALL SESSIONS)
+export const logoutAll = catchAsync(async (req, res) => {
+  // Target = clear tokens array
+  req.user.tokens = [];
+  await req.user.save();
+
+  res.status(200).json({
+    status: "success",
+    message: "Logged out from all devices",
+  });
+});
+
 // GET USER PROFILE INFORMATION
 export const getProfile = (req, res) => {
   res.status(200).json({

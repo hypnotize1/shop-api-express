@@ -5,6 +5,8 @@ import {
   getProfile,
   updateProfile,
   deleteAccount,
+  logout,
+  logoutAll,
 } from "../controllers/userController.js";
 import { auth } from "../middlewares/authMiddleware.js";
 
@@ -18,5 +20,9 @@ router.post("/login", login);
 router.get("/profile", auth, getProfile);
 router.patch("/profile", auth, updateProfile);
 router.delete("/profile", auth, deleteAccount);
+
+// Logout Routes
+router.post("/logout", auth, logout); // for usual exit
+router.post("/logoutAll", auth, logoutAll); // for necessary exit
 
 export default router;
