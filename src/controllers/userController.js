@@ -55,3 +55,52 @@ export const login = catchAsync(async (req, res) => {
     },
   });
 });
+
+// GET USER PROFILE INFORMATION
+export const getProfile = (req, res) => {
+  res.status(200).json({
+    status: "success",
+    data: {
+      user: req.user,
+    },
+  });
+};
+
+// UPDATE PROFILE
+export const updateProfile = catchAsync(async (req, res, next) => {
+  const updates = Object.keys(req.body);
+  const allowUpdates = ["name", "email", "password"];
+  const isValidOperation = updates.every((update) =>
+    allowUpdates.includes(update),
+  );
+
+  if (!isValidOperation) {
+    throw new AppError("Invalid updates!", 400);
+  }
+
+  // We update manually because findByIdAndUpdate goes away the middleware that hash the password
+  updates.forEach((update) => (req.user[update] = req.body[update]));
+
+  await req.user.save(); // Password will be hash if its changed
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      user: req.user,
+    },
+  });
+});
+
+// DELETE ACCOUNT
+export const deleteAccount = catchAsync(async (req, res) => {
+  // Delete the user has logged in
+  await User.deleteOne({
+    _id: req.user._id,
+  });
+
+  // 204: "No Content"
+  res.status(204).json({
+    status: "success",
+    data: null,
+  });
+});
