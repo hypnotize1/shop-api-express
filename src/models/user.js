@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import validator from "validator";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 
 const userSchema = new mongoose.Schema(
   {
@@ -64,6 +65,12 @@ const userSchema = new mongoose.Schema(
     avatar: {
       type: Buffer,
     },
+    passwordResetToken: {
+      type: String,
+    },
+    passwordResetExpires: {
+      type: Date,
+    },
   },
   { timestamps: true },
 );
@@ -121,6 +128,23 @@ userSchema.pre("save", async function () {
     user.password = await bcrypt.hash(user.password, 8);
   }
 });
+
+// Generate temporary token
+userSchema.methods.createPasswordResetToken = function () {
+  // 1. Generate a random and simple string
+  const resetToken = crypto.randomBytes(32).toString("hex");
+
+  // 2. Hash the token for save in database
+  this.passwordResetToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+
+  // 3. Update expire time
+  this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
+
+  return resetToken;
+};
 
 // create and export User model
 const User = mongoose.model("User", userSchema);
