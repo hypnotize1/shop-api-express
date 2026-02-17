@@ -50,6 +50,21 @@ const productSchema = new mongoose.Schema(
       required: true,
       ref: "User",
     },
+
+    discount: {
+      type: Number,
+      default: 0,
+      validate(value) {
+        if (value > 100 || value < 0) {
+          throw new Error("Discount must be between 0 and 100");
+        }
+      },
+    },
+
+    sold: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,
