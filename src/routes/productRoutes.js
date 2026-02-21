@@ -12,7 +12,7 @@ import { resizeProductImages } from "../middlewares/productMiddleware.js";
 
 const router = express.Router();
 
-// Routes for '/'
+// --- Routes for '/' ---
 router
   .route("/")
   .get(getAllProducts) // Public: Get all products
@@ -24,11 +24,17 @@ router
     createProduct,
   ); // Admin: Create product
 
-// Route for '/:id'
+// --- Route for '/:id' ---
 router
   .route("/:id")
   .get(getProduct) // Public: Get product by ID
-  .patch(auth, restrictTo("admin"), updateProduct) // Admin: Update product by ID
+  .patch(
+    auth,
+    restrictTo("admin"),
+    uploadProductImage,
+    resizeProductImages,
+    updateProduct,
+  ) // Admin: Update product by ID
   .delete(auth, restrictTo("admin"), deleteProduct); // Admin: Delete product by ID
 
 export default router;

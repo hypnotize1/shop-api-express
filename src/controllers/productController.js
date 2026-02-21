@@ -1,5 +1,6 @@
 import Product from "../models/product.js";
 import AppError from "../utils/appError.js";
+import { deleteOldImages } from "../utils/deleteFiles.js";
 
 // @desc    Create a new product
 // @route   POST /api/products
@@ -8,8 +9,7 @@ export const createProduct = async (req, res, next) => {
   // 1. Destructure the required fields from the request body
   const { title, price, description, category } = req.body;
 
-  // 2. Manual validation: check if critical fields are missing
-  // If any of these are undefined or empty , we stop immediately
+  // 2. Manual validation
   if (!title || !price || !description || !category) {
     throw new AppError(
       "Please provide all required fields: title, price, description and category",
@@ -18,7 +18,6 @@ export const createProduct = async (req, res, next) => {
   }
 
   // 3. Create a new Product instance
-  // We spread the request body data (title, price, etc.)
   const newProduct = new Product({
     ...req.body,
     owner: req.user._id,
@@ -129,9 +128,13 @@ export const getProduct = async (req, res, next) => {
 // @route  PATCH /api/products/:id
 // @access Private (Admin only)
 export const updateProduct = async (req, res, next) => {
-  // 1. Find product by ID and update it with request body
-  // { new: true } returns new update product
-  // { runValidators: true } run model validation again
+  // 1. Find the product first (We need this to know old images)
+  const product = await Product.findById(req.params.id);
+
+  if (!product) {
+    throw new AppError("No product found with that ID", 404);
+  }
+
   const allowedFields = [
     "title",
     "price",
@@ -141,20 +144,26 @@ export const updateProduct = async (req, res, next) => {
     "stock",
   ];
   const updates = {};
+
   Object.keys(req.body).forEach((el) => {
     if (allowedFields.includes(el) && req.body[el] !== undefined) {
       updates[el] = req.body[el];
     }
   });
-  const product = await Product.findByIdAndUpdate(req.params.id, updates, {
-    new: true,
-    runValidators: true,
-  });
 
-  if (!product) {
-    throw new AppError("No product found with that ID", 404);
+  // --- HANDLE IMAGE REPLACEMENT ---
+  // 2. If user uploaded new files, delete old ones from hard drive
+  if (req.files && req.files.length > 0) {
+    await deleteOldImages(product.images);
   }
 
+  // 3. Apply updates to the product instance
+  Object.assign(product, updates);
+
+  // 4. Save the updated product to the database
+  await product.save();
+
+  // 5. Send success response
   res.status(200).json({
     status: "success",
     data: {
@@ -167,13 +176,20 @@ export const updateProduct = async (req, res, next) => {
 // @route DELETE /api/products/:id
 // @access Private (Admin only)
 export const deleteProduct = async (req, res, next) => {
-  // 1. Find product by ID and delete it
-  const product = await Product.findByIdAndDelete(req.params.id);
+  // 1. Find the product to get its images array
+  const product = await Product.findById(req.params.id);
 
   if (!product) {
     throw new AppError("No product found with that ID", 404);
   }
 
+  // 2. Delete product images from hard drive
+  await deleteOldImages(product.images);
+
+  // 3. Delete the product from database
+  await product.deleteOne();
+
+  // 4. Send success response with no content
   res.status(204).json({
     status: "success",
     data: null,

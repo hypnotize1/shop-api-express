@@ -1,5 +1,6 @@
 import Category from "../models/category.js";
 import AppError from "../utils/appError.js";
+import deleteOldImages from "../utils/deleteFiles.js";
 
 // @desc    Create a new category
 // @route   POST /api/categories
@@ -49,5 +50,65 @@ export const getAllCategories = async (req, res, next) => {
     data: {
       categories,
     },
+  });
+};
+
+// @desc  Update a category
+// @route PUT /api/categories/:id
+// @access Private (Admin only)
+export const updateCategory = async (req, res, next) => {
+  // 1. Find the category to check the old image
+  const category = await Category.findById(req.params.id);
+
+  if (!category) {
+    throw new AppError("No Category found with that ID", 404);
+  }
+
+  // 2. Update slug automatically if the name is being updated
+  if (req.body.name) {
+    req.body.slug = req.body.name.toLowerCase().split(" ").join("-");
+  }
+
+  // 3. Handle old image deletion if a new image is uploaded
+  if (req.file && category.image) {
+    await deleteOldImages([category.image], "categories");
+  }
+
+  // 4. Apply the updates
+  Object.assign(category, req.body);
+  await category.save();
+
+  // 5. Send response
+  res.status(200).json({
+    status: "success",
+    data: {
+      category,
+    },
+  });
+};
+
+// @desc  Delete a category
+// @route DELETE /api/categories/:id
+// @access Private (Admin only)
+export const deleteCategory = async (req, res, next) => {
+  // 1. Find the category
+  const category = await Category.findById(req.params.id);
+
+  if (!category) {
+    throw new AppError("No Category found with that ID", 404);
+  }
+
+  // 2. Delete the physical image file from the server
+  if (category.image) {
+    await deleteOldImages([category.image], "categories");
+  }
+
+  // 3. Remove the category from the database
+  await category.deleteOne();
+
+  // 4. Send response
+  res.status(204).json({
+    status: "success",
+    data: null,
   });
 };

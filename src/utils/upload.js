@@ -18,4 +18,8 @@ const upload = multer({
   fileFilter: multerFilter,
 });
 
+// For Products, we allow multiple images, so we use upload.array
 export const uploadProductImage = upload.array("images", 5);
+
+// For Categories, we only allow one image, so we use upload.single
+export const uploadCategoryImage = upload.single("image");
