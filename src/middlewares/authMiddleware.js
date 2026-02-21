@@ -1,9 +1,8 @@
 import jwt from "jsonwebtoken";
 import User from "../models/user.js";
 import AppError from "../utils/appError.js";
-import catchAsync from "../utils/catchAsync.js";
 
-export const auth = catchAsync(async (req, res, next) => {
+export const auth = async (req, res, next) => {
   // 1. Check the header
   const authHeader = req.header("Authorization");
 
@@ -18,21 +17,17 @@ export const auth = catchAsync(async (req, res, next) => {
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
   // 4. Find user
-  const user = await User.findOne({
-    _id: decoded._id,
-    "tokens.token": token,
-  });
+  const user = await User.findById(decoded._id);
 
   if (!user) {
-    throw new AppError("User not found or session expired.", 401);
+    throw new AppError("User not found or token expired.", 401);
   }
 
   // 5. Add user information to req
-  req.token = token;
   req.user = user;
 
   next();
-});
+};
 
 // Get allowed roles
 export const restrictTo = (...roles) => {

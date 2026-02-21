@@ -1,11 +1,10 @@
 import Category from "../models/category.js";
-import catchAsync from "../utils/catchAsync.js";
 import AppError from "../utils/appError.js";
 
 // @desc    Create a new category
 // @route   POST /api/categories
 // @access  Private (Admin only)
-export const createCategory = catchAsync(async (req, res) => {
+export const createCategory = async (req, res, next) => {
   const { name, parent, image, description } = req.body;
 
   // 1. Check if name exist
@@ -35,12 +34,12 @@ export const createCategory = catchAsync(async (req, res) => {
       category: newCategory,
     },
   });
-});
+};
 
 // @desc    Get all categories
 // @route   GET /api/categories
 // @access  Public
-export const getAllCategories = catchAsync(async (req, res) => {
+export const getAllCategories = async (req, res, next) => {
   // We populate the 'parent' field to see the name of the parent category
   const categories = await Category.find().populate("parent", "name");
 
@@ -51,4 +50,4 @@ export const getAllCategories = catchAsync(async (req, res) => {
       categories,
     },
   });
-});
+};

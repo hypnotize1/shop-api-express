@@ -1,39 +1,40 @@
 import User from "../models/user.js";
-import catchAsync from "../utils/catchAsync.js";
 import AppError from "../utils/appError.js";
-import crypto from "crypto";
 import sendEmail from "../utils/email.js";
+import crypto from "crypto";
+import jwt from "jsonwebtoken";
 
-// SIGNUP
-export const register = catchAsync(async (req, res) => {
+// --- SIGNUP ---
+export const register = async (req, res, next) => {
   const { name, email, password } = req.body;
 
-  // manual validation
+  // Manual validation
   if (!name || !email || !password) {
     throw new AppError("Please provide name, email and password!", 400);
   }
 
-  // Create User
+  // Create User instance
   const user = new User({ name, email, password });
 
   // Save (Hash password & Check unique email)
   await user.save();
 
-  // Generate token for
-  const token = await user.generateAuthToken();
+  // Generate token (Access and Refresh Tokens)
+  const { refreshToken, accessToken } = await user.generateAuthTokens();
 
   // Send Response (JSON)
   res.status(201).json({
     status: "success",
     data: {
       user,
-      token,
+      accessToken,
+      refreshToken,
     },
   });
-});
+};
 
-// LOGIN
-export const login = catchAsync(async (req, res) => {
+// --- LOGIN ---
+export const login = async (req, res, next) => {
   const { email, password } = req.body;
 
   // Check the inputs
@@ -41,14 +42,13 @@ export const login = catchAsync(async (req, res) => {
     throw new AppError("Please provide email and password!", 400);
   }
 
-  // Use static method for compare both passwords by email inserted
-  // if user not found or passwords doesn't match = ERROR
+  // Check user credentials
   const user = await User.findByCredentials(email, password);
 
-  // Create new token
-  const token = await user.generateAuthToken();
+  // Create new tokens (Access and Refresh Tokens)
+  const { refreshToken, accessToken } = await user.generateAuthTokens();
 
-  // Send response
+  // Send response (JSON)
   res.status(200).json({
     status: "success",
     data: {
@@ -56,13 +56,20 @@ export const login = catchAsync(async (req, res) => {
       token,
     },
   });
-});
+};
 
-// LOGOUT
-export const logout = catchAsync(async (req, res) => {
-  // Target = delete current token from user tokens array
-  req.user.tokens = req.user.tokens.filter((tokenObj) => {
-    return tokenObj.token !== req.token; // keep all tokens, except the token that user logged in with it.
+// --- LOGOUT ---
+export const logout = async (req, res, next) => {
+  // Front should ask for delete which refresh token?
+  const { refreshToken } = req.body;
+
+  if (!refreshToken) {
+    throw new AppError("Refresh Token is required", 400);
+  }
+
+  // Target = delete the refresh token  from user refreshTokens in database
+  req.user.refreshTokens = req.user.refreshTokens.filter((tokenObj) => {
+    return tokenObj.token !== refreshToken;
   });
 
   await req.user.save();
@@ -71,21 +78,57 @@ export const logout = catchAsync(async (req, res) => {
     status: "success",
     message: "Logged out successfully",
   });
-});
+};
 
-// LOGOUT ALL (ALL SESSIONS)
-export const logoutAll = catchAsync(async (req, res) => {
-  // Target = clear tokens array
-  req.user.tokens = [];
+// --- LOGOUT ALL ---
+export const logoutAll = async (req, res, next) => {
+  // Target = Clear all sessions
+  req.user.refreshTokens = [];
   await req.user.save();
 
   res.status(200).json({
     status: "success",
     message: "Logged out from all devices",
   });
-});
+};
 
-// GET USER PROFILE INFORMATION
+// --- REFRESH TOKEN ---
+export const refreshAuthToken = async (req, res, next) => {
+  const { refreshToken } = req.body;
+
+  if (!refreshToken) {
+    throw new AppError("Refresh token is required", 400);
+  }
+
+  // 1. Verify Refresh Token
+  const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+
+  // 2. Check if the token exists in database for this user
+  const user = await User.findOne({
+    _id: decoded._id,
+    "refreshTokens.token": refreshToken,
+  });
+
+  // Throw error if user or token not found
+  if (!user) {
+    throw new AppError("Invalid refresh token", 401);
+  }
+
+  // 3. Create a new access Token
+  const accessToken = jwt.sign(
+    { _id: user._id.toString() },
+    process.env.JWT_SECRET,
+    { expiresIn: "15m" },
+  );
+
+  // 4. Send new token
+  res.status(200).json({
+    status: "success",
+    accessToken,
+  });
+};
+
+// --- GET USER PROFILE INFORMATION ---
 export const getProfile = (req, res) => {
   res.status(200).json({
     status: "success",
@@ -95,8 +138,8 @@ export const getProfile = (req, res) => {
   });
 };
 
-// UPDATE PROFILE
-export const updateProfile = catchAsync(async (req, res, next) => {
+// --- UPDATE PROFILE ---
+export const updateProfile = async (req, res, next) => {
   const updates = Object.keys(req.body);
   const allowUpdates = ["name", "email", "password"];
   const isValidOperation = updates.every((update) =>
@@ -118,10 +161,10 @@ export const updateProfile = catchAsync(async (req, res, next) => {
       user: req.user,
     },
   });
-});
+};
 
-// DELETE ACCOUNT
-export const deleteAccount = catchAsync(async (req, res) => {
+// --- DELETE ACCOUNT ---
+export const deleteAccount = async (req, res, next) => {
   // Delete the user has logged in
   await User.deleteOne({
     _id: req.user._id,
@@ -132,10 +175,10 @@ export const deleteAccount = catchAsync(async (req, res) => {
     status: "success",
     data: null,
   });
-});
+};
 
-// FORGOT PASSWORD
-export const forgotPassword = catchAsync(async (req, res) => {
+// --- FORGOT PASSWORD ---
+export const forgotPassword = async (req, res, next) => {
   // 1. Find user by email
   const user = await User.findOne({
     email: req.body.email,
@@ -173,10 +216,10 @@ export const forgotPassword = catchAsync(async (req, res) => {
       500,
     );
   }
-});
+};
 
-// RESET PASSWORD
-export const resetPassword = catchAsync(async (req, res) => {
+// --- RESET PASSWORD ---
+export const resetPassword = async (req, res, next) => {
   // 1. Hash the token comes from url
   const hashedToken = crypto
     .createHash("sha256")
@@ -205,10 +248,11 @@ export const resetPassword = catchAsync(async (req, res) => {
   await user.save();
 
   // 7. Login automatically (Generate new jwt token)
-  const token = await user.generateAuthToken();
+  const { accessToken, refreshToken } = await user.generateAuthTokens();
 
   res.status(200).json({
     status: "success",
-    token,
+    accessToken,
+    refreshToken,
   });
-});
+};

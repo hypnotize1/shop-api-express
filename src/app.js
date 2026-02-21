@@ -3,6 +3,7 @@ import cors from "cors";
 import morgan from "morgan";
 import connectDB from "./db/mongoose.js";
 import { globalErrorHandler } from "./middlewares/errorMiddleware.js";
+import path from "path";
 
 // Import routers
 import userRouter from "./routes/userRoutes.js";
@@ -18,6 +19,7 @@ app.use(cors());
 app.set("query parser", "extended");
 app.use(express.json());
 app.use(morgan("dev"));
+app.use(express.static(path.join(path.resolve(), "public")));
 
 // Routes
 app.use("/api/users", userRouter);

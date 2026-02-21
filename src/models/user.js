@@ -54,7 +54,7 @@ const userSchema = new mongoose.Schema(
       default: "customer",
       enum: ["customer", "admin"],
     },
-    tokens: [
+    refreshTokens: [
       {
         token: {
           type: String,
@@ -83,22 +83,36 @@ userSchema.methods.toJSON = function () {
   const userObject = user.toObject();
 
   delete userObject.password;
-  delete userObject.tokens;
+  delete userObject.refreshTokens;
   delete userObject.avatar;
   delete userObject.__v;
 
   return userObject;
 };
 
-// create auth token for user
-userSchema.methods.generateAuthToken = async function () {
+// Generate Access and Refresh Tokens
+userSchema.methods.generateAuthTokens = async function () {
   const user = this;
-  const token = jwt.sign({ _id: user._id.toString() }, process.env.JWT_SECRET);
 
-  user.tokens = user.tokens.concat({ token });
+  // 1. Create short-lived Access Token
+  const accessToken = jwt.sign(
+    { _id: user._id.toString() },
+    process.env.JWT_SECRET,
+    { expiresIn: "15m" },
+  );
+
+  // 2. Create long-lived Refresh Token
+  const refreshToken = jwt.sign(
+    { _id: user._id.toString() },
+    process.env.REFRESH_TOKEN_SECRET,
+    { expiresIn: "7d" },
+  );
+
+  // 3. Save Refresh Token in database
+  user.refreshTokens = user.refreshTokens.concat({ token: refreshToken });
   await user.save();
 
-  return token;
+  return { accessToken, refreshToken };
 };
 
 // --- Statics ---
