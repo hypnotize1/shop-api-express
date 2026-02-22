@@ -1,6 +1,6 @@
 import Category from "../models/category.js";
 import AppError from "../utils/appError.js";
-import deleteOldImages from "../utils/deleteFiles.js";
+import { deleteOldImages } from "../utils/deleteFiles.js";
 
 // @desc    Create a new category
 // @route   POST /api/categories

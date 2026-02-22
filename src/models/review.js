@@ -13,7 +13,7 @@ const reviewSchema = new mongoose.Schema(
       ref: "Product",
     },
     rating: {
-      type: String,
+      type: Number,
       required: true,
       min: 1,
       max: 5,
@@ -26,10 +26,24 @@ const reviewSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   },
 );
 
+// ---  PREVENT DUPLICATE REVIEWS ---
+// Compound Index: A user can only write ONE review for a specific product
 reviewSchema.index({ owner: 1, product: 1 }, { unique: true });
+
+// ---  AUTO-POPULATE USER DATA ---
+// Automatically populate the user's name every time we query reviews
+reviewSchema.pre(/^find/, function (next) {
+  this.populate({
+    path: "user",
+    select: "name",
+  });
+  next();
+});
 
 const Review = mongoose.model("Review", reviewSchema);
 

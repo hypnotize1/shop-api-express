@@ -9,8 +9,11 @@ import {
 import { auth, restrictTo } from "../middlewares/authMiddleware.js";
 import { uploadProductImage } from "../utils/upload.js";
 import { resizeProductImages } from "../middlewares/productMiddleware.js";
+import reviewRouter from "./reviewRoutes.js";
 
 const router = express.Router();
+
+router.use("/:productId/reviews", reviewRouter);
 
 // --- Routes for '/' ---
 router
