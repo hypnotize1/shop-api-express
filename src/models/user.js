@@ -34,21 +34,7 @@ const userSchema = new mongoose.Schema(
         }
       },
     },
-    cart: [
-      {
-        product: {
-          type: mongoose.Schema.Types.ObjectId,
-          required: true,
-          ref: "Product",
-        },
-        quantity: {
-          type: Number,
-          required: true,
-          default: 1,
-          min: 1,
-        },
-      },
-    ],
+
     role: {
       type: String,
       default: "customer",
@@ -104,7 +90,7 @@ userSchema.methods.generateAuthTokens = async function () {
   // 2. Create long-lived Refresh Token
   const refreshToken = jwt.sign(
     { _id: user._id.toString() },
-    process.env.REFRESH_TOKEN_SECRET,
+    process.env.JWT_REFRESH_SECRET,
     { expiresIn: "7d" },
   );
 

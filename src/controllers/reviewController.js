@@ -103,8 +103,5 @@ export const deleteReview = async (req, res, next) => {
   await Review.findByIdAndDelete(req.params.id);
 
   // 4. send response
-  res.status(204).json({
-    status: "success",
-    data: null,
-  });
+  res.status(204).send();
 };

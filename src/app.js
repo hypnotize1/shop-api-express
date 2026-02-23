@@ -1,7 +1,6 @@
 import express from "express";
 import cors from "cors";
 import morgan from "morgan";
-import connectDB from "./db/mongoose.js";
 import { globalErrorHandler } from "./middlewares/errorMiddleware.js";
 import path from "path";
 
@@ -9,9 +8,8 @@ import path from "path";
 import userRouter from "./routes/userRoutes.js";
 import categoryRouter from "./routes/categoryRoutes.js";
 import productRouter from "./routes/productRoutes.js";
+import cartRouter from "./routes/cartRoutes.js";
 
-// Connect to MongoDB
-connectDB();
 const app = express();
 
 // Middleware
@@ -25,6 +23,7 @@ app.use(express.static(path.join(path.resolve(), "public")));
 app.use("/api/users", userRouter);
 app.use("/api/categories", categoryRouter);
 app.use("/api/products", productRouter);
+app.use("/api/cart", cartRouter);
 
 // Base Route
 app.get("/", (req, res) => {
@@ -45,8 +44,4 @@ app.all(/.*/, (req, res, next) => {
 // Error handler
 app.use(globalErrorHandler);
 
-// Start server
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-});
+export default app;

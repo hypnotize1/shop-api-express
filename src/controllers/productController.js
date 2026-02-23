@@ -2,10 +2,11 @@ import Product from "../models/product.js";
 import AppError from "../utils/appError.js";
 import { deleteOldImages } from "../utils/deleteFiles.js";
 
+// --------------------------------------------------
 // @desc    Create a new product
 // @route   POST /api/products
 // @access  Private (Admin only)
-export const createProduct = async (req, res, next) => {
+export const createProduct = async (req, res) => {
   // 1. Destructure the required fields from the request body
   const { title, price, description, category } = req.body;
 
@@ -35,10 +36,11 @@ export const createProduct = async (req, res, next) => {
   });
 };
 
+// --------------------------------------------------
 // @desc   Get all products (Filter, Sort, Limit Fields, Pagination)
 // @route  GET /api/products
 // @access Public
-export const getAllProducts = async (req, res, next) => {
+export const getAllProducts = async (req, res) => {
   // 1. --- FILTERING ---
   // Create shallow copy of query object to exclude special fields
   const queryObj = { ...req.query };
@@ -102,10 +104,11 @@ export const getAllProducts = async (req, res, next) => {
   });
 };
 
+// --------------------------------------------------
 // @desc    Get a single product by ID
 // @route   GET /api/products/:id
 // @access  Public
-export const getProduct = async (req, res, next) => {
+export const getProduct = async (req, res) => {
   // 1. Find the product by ID and populate related fields
   const product = await Product.findById(req.params.id)
     .populate("category", "name slug") // Get category name and slug
@@ -124,10 +127,11 @@ export const getProduct = async (req, res, next) => {
   });
 };
 
+// --------------------------------------------------
 // @desc   Update a product by ID
 // @route  PATCH /api/products/:id
 // @access Private (Admin only)
-export const updateProduct = async (req, res, next) => {
+export const updateProduct = async (req, res) => {
   // 1. Find the product first (We need this to know old images)
   const product = await Product.findById(req.params.id);
 
@@ -172,10 +176,11 @@ export const updateProduct = async (req, res, next) => {
   });
 };
 
+// --------------------------------------------------
 // @desc  Delete a product by ID
 // @route DELETE /api/products/:id
 // @access Private (Admin only)
-export const deleteProduct = async (req, res, next) => {
+export const deleteProduct = async (req, res) => {
   // 1. Find the product to get its images array
   const product = await Product.findById(req.params.id);
 
@@ -190,8 +195,5 @@ export const deleteProduct = async (req, res, next) => {
   await product.deleteOne();
 
   // 4. Send success response with no content
-  res.status(204).json({
-    status: "success",
-    data: null,
-  });
+  res.status(204).send();
 };

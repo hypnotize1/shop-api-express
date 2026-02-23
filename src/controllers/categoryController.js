@@ -2,10 +2,11 @@ import Category from "../models/category.js";
 import AppError from "../utils/appError.js";
 import { deleteOldImages } from "../utils/deleteFiles.js";
 
+// --------------------------------------------------
 // @desc    Create a new category
 // @route   POST /api/categories
 // @access  Private (Admin only)
-export const createCategory = async (req, res, next) => {
+export const createCategory = async (req, res) => {
   const { name, parent, image, description } = req.body;
 
   // 1. Check if name exist
@@ -37,10 +38,11 @@ export const createCategory = async (req, res, next) => {
   });
 };
 
+// --------------------------------------------------
 // @desc    Get all categories
 // @route   GET /api/categories
 // @access  Public
-export const getAllCategories = async (req, res, next) => {
+export const getAllCategories = async (req, res) => {
   // We populate the 'parent' field to see the name of the parent category
   const categories = await Category.find().populate("parent", "name");
 
@@ -53,10 +55,11 @@ export const getAllCategories = async (req, res, next) => {
   });
 };
 
+// --------------------------------------------------
 // @desc  Update a category
 // @route PUT /api/categories/:id
 // @access Private (Admin only)
-export const updateCategory = async (req, res, next) => {
+export const updateCategory = async (req, res) => {
   // 1. Find the category to check the old image
   const category = await Category.findById(req.params.id);
 
@@ -87,10 +90,11 @@ export const updateCategory = async (req, res, next) => {
   });
 };
 
+// --------------------------------------------------
 // @desc  Delete a category
 // @route DELETE /api/categories/:id
 // @access Private (Admin only)
-export const deleteCategory = async (req, res, next) => {
+export const deleteCategory = async (req, res) => {
   // 1. Find the category
   const category = await Category.findById(req.params.id);
 
@@ -107,8 +111,5 @@ export const deleteCategory = async (req, res, next) => {
   await category.deleteOne();
 
   // 4. Send response
-  res.status(204).json({
-    status: "success",
-    data: null,
-  });
+  res.status(204).send();
 };

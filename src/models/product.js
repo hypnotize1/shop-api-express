@@ -84,9 +84,16 @@ const productSchema = new mongoose.Schema(
   },
 );
 
-// Virtual Property
+// Virtual Properties
 productSchema.virtual("isAvailable").get(function () {
   return this.stock > 0;
+});
+
+productSchema.virtual("imageCover").get(function () {
+  if (this.images && this.images.length > 0) {
+    return this.images[0];
+  }
+  return "default-product-image.webp";
 });
 
 // hide private data when sending product data to client

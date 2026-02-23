@@ -4,8 +4,9 @@ import sendEmail from "../utils/email.js";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 
+// --------------------------------------------------
 // --- SIGNUP ---
-export const register = async (req, res, next) => {
+export const register = async (req, res) => {
   const { name, email, password } = req.body;
 
   // Manual validation
@@ -33,8 +34,9 @@ export const register = async (req, res, next) => {
   });
 };
 
+// --------------------------------------------------
 // --- LOGIN ---
-export const login = async (req, res, next) => {
+export const login = async (req, res) => {
   const { email, password } = req.body;
 
   // Check the inputs
@@ -53,13 +55,15 @@ export const login = async (req, res, next) => {
     status: "success",
     data: {
       user,
-      token,
+      refreshToken,
+      accessToken,
     },
   });
 };
 
+// --------------------------------------------------
 // --- LOGOUT ---
-export const logout = async (req, res, next) => {
+export const logout = async (req, res) => {
   // Front should ask for delete which refresh token?
   const { refreshToken } = req.body;
 
@@ -80,8 +84,9 @@ export const logout = async (req, res, next) => {
   });
 };
 
+// --------------------------------------------------
 // --- LOGOUT ALL ---
-export const logoutAll = async (req, res, next) => {
+export const logoutAll = async (req, res) => {
   // Target = Clear all sessions
   req.user.refreshTokens = [];
   await req.user.save();
@@ -92,8 +97,9 @@ export const logoutAll = async (req, res, next) => {
   });
 };
 
+// --------------------------------------------------
 // --- REFRESH TOKEN ---
-export const refreshAuthToken = async (req, res, next) => {
+export const refreshAuthToken = async (req, res) => {
   const { refreshToken } = req.body;
 
   if (!refreshToken) {
@@ -128,6 +134,7 @@ export const refreshAuthToken = async (req, res, next) => {
   });
 };
 
+// --------------------------------------------------
 // --- GET USER PROFILE INFORMATION ---
 export const getProfile = (req, res) => {
   res.status(200).json({
@@ -138,8 +145,9 @@ export const getProfile = (req, res) => {
   });
 };
 
+// --------------------------------------------------
 // --- UPDATE PROFILE ---
-export const updateProfile = async (req, res, next) => {
+export const updateProfile = async (req, res) => {
   const updates = Object.keys(req.body);
   const allowUpdates = ["name", "email", "password"];
   const isValidOperation = updates.every((update) =>
@@ -163,22 +171,21 @@ export const updateProfile = async (req, res, next) => {
   });
 };
 
+// --------------------------------------------------
 // --- DELETE ACCOUNT ---
-export const deleteAccount = async (req, res, next) => {
+export const deleteAccount = async (req, res) => {
   // Delete the user has logged in
   await User.deleteOne({
     _id: req.user._id,
   });
 
   // 204: "No Content"
-  res.status(204).json({
-    status: "success",
-    data: null,
-  });
+  res.status(204).send();
 };
 
+// --------------------------------------------------
 // --- FORGOT PASSWORD ---
-export const forgotPassword = async (req, res, next) => {
+export const forgotPassword = async (req, res) => {
   // 1. Find user by email
   const user = await User.findOne({
     email: req.body.email,
@@ -218,8 +225,9 @@ export const forgotPassword = async (req, res, next) => {
   }
 };
 
+// --------------------------------------------------
 // --- RESET PASSWORD ---
-export const resetPassword = async (req, res, next) => {
+export const resetPassword = async (req, res) => {
   // 1. Hash the token comes from url
   const hashedToken = crypto
     .createHash("sha256")
