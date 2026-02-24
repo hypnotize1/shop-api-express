@@ -1,5 +1,6 @@
 import Cart from "../models/cart.js";
 import Product from "../models/product.js";
+import Coupon from "../models/coupon.js";
 import AppError from "../utils/appError.js";
 import { calcTotalCartPrice } from "../utils/cartHelper.js";
 
@@ -186,4 +187,85 @@ export const clearCart = async (req, res) => {
 
   // 2. Send a 204 (No Content) response
   res.status(204).send();
+};
+
+// --------------------------------------------------
+// @desc      Apply Discount on cart totalPrice
+// @route     PATCH /api/cart/applyCoupon
+// @access    Private (Logged-in users only)
+export const applyCoupon = async (req, res) => {
+  // 1. Get coupon's name
+  const { couponName } = req.body;
+
+  // 2. Check the existence AND expiration directly in the  database
+  const coupon = await Coupon.findOne({
+    name: couponName,
+    expire: { $gt: Date.now() },
+  });
+
+  if (!coupon) {
+    throw new AppError("Coupon is invalid or expired", 400);
+  }
+  // 3. Find the user's cart
+  const cart = await Cart.findOne({ user: req.user._id });
+
+  if (!cart) {
+    throw new AppError("No cart found for this user", 404);
+  }
+
+  // 4. Check the cartItems array
+  if (cart.cartItems.length === 0) {
+    throw new AppError("Your cart is empty!", 400);
+  }
+
+  // 5. Add a condition to prevent rediscounting
+  if (cart.totalPriceAfterDiscount > 0) {
+    throw new AppError("Discount has already been applied", 400);
+  }
+
+  // 6. Calculate the total price AFTER applying the discount
+  const discountAmount = (cart.totalCartPrice * coupon.discount) / 100;
+
+  cart.totalPriceAfterDiscount = Math.round(
+    cart.totalCartPrice - discountAmount,
+  );
+
+  // 7. Save the updated cart
+  await cart.save();
+
+  // 8. Send response
+  res.status(200).json({
+    status: "success",
+    message: `Coupon ${coupon.name} applied successfully!`,
+    data: {
+      cart,
+    },
+  });
+};
+
+// --------------------------------------------------
+// @desc      Delete Discount on cart totalPrice
+// @route     DELETE /api/cart/removeCoupon
+// @access    Private (Logged-in users only)
+export const removeCoupon = async (req, res) => {
+  // 1. Find the user's cart
+  const cart = await Cart.findOne({ user: req.user._id });
+
+  // 2. Check if coupon has been applied or not
+  if (cart.totalPriceAfterDiscount <= 0) {
+    throw new AppError("There is no discount for deletion", 400);
+  }
+
+  // 3. Delete coupon and Save the cart
+  cart.totalPriceAfterDiscount = undefined;
+  await cart.save();
+
+  // 4. Send response
+  res.status(200).json({
+    status: "success",
+    message: "Coupon removed successfully!",
+    data: {
+      cart,
+    },
+  });
 };

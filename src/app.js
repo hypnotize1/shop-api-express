@@ -9,6 +9,7 @@ import userRouter from "./routes/userRoutes.js";
 import categoryRouter from "./routes/categoryRoutes.js";
 import productRouter from "./routes/productRoutes.js";
 import cartRouter from "./routes/cartRoutes.js";
+import couponRouter from "./routes/couponRoutes.js";
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use("/api/users", userRouter);
 app.use("/api/categories", categoryRouter);
 app.use("/api/products", productRouter);
 app.use("/api/cart", cartRouter);
+app.use("/api/coupons", couponRouter);
 
 // Base Route
 app.get("/", (req, res) => {
