@@ -14,6 +14,7 @@ export const addProductToCart = async (req, res, next) => {
 
   // 2. Fetch the product from the DB to get its current, actual price
   const product = await Product.findById(productId);
+
   if (!product) {
     throw new AppError("Product not found!", 404);
   }
@@ -44,11 +45,23 @@ export const addProductToCart = async (req, res, next) => {
       // B-1: Product exists in the cart.
       // Update its quantity by reference.
       const cartItem = cart.cartItems[productIndex];
+      // Check the stock before increase the quantity
+      if (cartItem.quantity + 1 > product.quantity) {
+        throw new AppError(
+          `Only ${product.quantity} items available in stock `,
+          400,
+        );
+      }
+
       cartItem.quantity += 1;
       cart.cartItems[productIndex] = cartItem;
     } else {
       // B-2: Product is completely new to this cart.
       // Push it as a new object into the cartItems array.
+      if (product.quantity < 1) {
+        throw new AppError("This product is out of stock!", 400);
+      }
+
       cart.cartItems.push({
         product: productId,
         price: product.price,
@@ -137,7 +150,6 @@ export const removeSpecificCartItem = async (req, res) => {
 // @desc        Update specific cart item quantity
 // @route       PATCH /api/cart/:itemId
 // @access      Private (Logged-in users only)
-
 export const updateCartItemQuantity = async (req, res) => {
   const { quantity } = req.body;
 
@@ -155,6 +167,12 @@ export const updateCartItemQuantity = async (req, res) => {
   if (itemIndex > -1) {
     // 3. Update the quantity of the found item by reference
     const cartItem = cart.cartItems[itemIndex];
+    const product = await Product.findById(cartItem.product);
+    if (product.quantity < quantity) {
+      throw new AppError(
+        `Not enough stock available. Only ${product.quantity} items left`,
+      );
+    }
     cartItem.quantity = quantity;
     cart.cartItems[itemIndex] = cartItem;
   } else {
