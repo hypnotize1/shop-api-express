@@ -10,7 +10,8 @@ import { calcTotalCartPrice } from "../utils/cartHelper.js";
 // @access     Private (Logged-in users only)
 export const addProductToCart = async (req, res, next) => {
   // 1. Extract product ID from the request body
-  const { productId } = req.body;
+  const { productId, quantity } = req.body;
+  const qty = Number(quantity);
 
   // 2. Fetch the product from the DB to get its current, actual price
   const product = await Product.findById(productId);
@@ -31,6 +32,7 @@ export const addProductToCart = async (req, res, next) => {
         {
           product: productId,
           price: product.price,
+          quantity: qty,
         },
       ],
     });
@@ -46,25 +48,26 @@ export const addProductToCart = async (req, res, next) => {
       // Update its quantity by reference.
       const cartItem = cart.cartItems[productIndex];
       // Check the stock before increase the quantity
-      if (cartItem.quantity + 1 > product.quantity) {
+      if (cartItem.quantity + qty > product.quantity) {
         throw new AppError(
           `Only ${product.quantity} items available in stock `,
           400,
         );
       }
 
-      cartItem.quantity += 1;
+      cartItem.quantity += qty;
       cart.cartItems[productIndex] = cartItem;
     } else {
       // B-2: Product is completely new to this cart.
       // Push it as a new object into the cartItems array.
-      if (product.quantity < 1) {
+      if (product.quantity < qty) {
         throw new AppError("This product is out of stock!", 400);
       }
 
       cart.cartItems.push({
         product: productId,
         price: product.price,
+        quantity: qty,
       });
     }
   }
